@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "strateng",
-    "slug": "strateng",
+    "name": "SplitFare",
+    "slug": "splitfare-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#090e1a",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,6 +19,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "baseUrl": "/splitfare-app"
     }
   }
 }

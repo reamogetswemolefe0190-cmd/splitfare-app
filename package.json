@@ -1,7 +1,8 @@
 {
-  "name": "strateng",
+  "name": "splitfare-app",
   "version": "1.0.0",
   "main": "index.js",
+  "homepage": "https://reamogetswemolefe0190-cmd.github.io/splitfare-app/",
   "dependencies": {
     "@expo/metro-runtime": "~57.0.6",
     "@expo/vector-icons": "^15.0.2",
@@ -19,7 +20,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "predeploy": "npx expo export -p web",
+    "deploy": "gh-pages -d dist"
   },
   "private": true,
   "devDependencies": {
