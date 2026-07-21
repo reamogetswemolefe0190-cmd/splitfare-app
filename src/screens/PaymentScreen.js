@@ -25,8 +25,7 @@ export default function PaymentScreen({
   onBack
 }) {
   // Local state for configuration form (only used if paymentMethod is null)
-  const [selectedType, setSelectedType] = useState('SnapScan'); // 'SnapScan' | 'PayShap' | 'BankEFT'
-  const [snapCode, setSnapCode] = useState('');
+  const [selectedType, setSelectedType] = useState('PayShap'); // 'PayShap' | 'BankEFT'
   const [shapID, setShapID] = useState('');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
@@ -38,16 +37,7 @@ export default function PaymentScreen({
 
   // Handle saving payment details to session
   const handleSave = () => {
-    if (selectedType === 'SnapScan') {
-      if (!snapCode.trim()) {
-        Alert.alert('Required Info', 'Please enter your SnapScan Merchant Code.');
-        return;
-      }
-      onSavePaymentMethod({
-        type: 'SnapScan',
-        details: { code: snapCode.trim() }
-      });
-    } else if (selectedType === 'PayShap') {
+    if (selectedType === 'PayShap') {
       if (!shapID.trim()) {
         Alert.alert('Required Info', 'Please enter your ShapID or Cell Number.');
         return;
@@ -87,13 +77,7 @@ export default function PaymentScreen({
     const { type, details } = paymentMethod;
     const payerText = payerName ? ` ${payerName}` : '';
 
-    if (type === 'SnapScan') {
-      const snapAmountCents = Math.round(amount * 100);
-      paymentLink = `https://pos.snapscan.io/qr/${details.code}?amount=${snapAmountCents}`;
-      qrCodeValue = paymentLink;
-      paymentDetailsText = `SnapScan Code: ${details.code}\nLink: ${paymentLink}`;
-      whatsappMessage = `Hi ${personName}, you owe${payerText} R${amount.toFixed(2)} for the split. Please pay using this SnapScan link: ${paymentLink}`;
-    } else if (type === 'PayShap') {
+    if (type === 'PayShap') {
       // Experimental PayShap URI format
       paymentLink = `payshap://pay?id=${details.shapID}&amount=${amount.toFixed(2)}`;
       qrCodeValue = paymentLink;
@@ -173,7 +157,6 @@ export default function PaymentScreen({
             {/* Selection Tabs */}
             <View style={styles.methodSelector}>
               {[
-                { key: 'SnapScan', name: 'SnapScan', icon: 'qr-code-outline' },
                 { key: 'PayShap', name: 'PayShap', icon: 'flash-outline' },
                 { key: 'BankEFT', name: 'Bank EFT', icon: 'business-outline' }
               ].map((m) => (
@@ -201,29 +184,6 @@ export default function PaymentScreen({
                 </TouchableOpacity>
               ))}
             </View>
-
-            {/* Inputs based on type */}
-            {selectedType === 'SnapScan' && (
-              <View style={styles.formGroup}>
-                <Text style={styles.inputLabel}>SnapScan Merchant Code</Text>
-                <TextInput
-                  style={[
-                    styles.textInput,
-                    isInput1Focused && styles.textInputFocused
-                  ]}
-                  placeholder="e.g. MyShopName"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={snapCode}
-                  onChangeText={setSnapCode}
-                  onFocus={() => setIsInput1Focused(true)}
-                  onBlur={() => setIsInput1Focused(false)}
-                  autoCapitalize="none"
-                />
-                <Text style={styles.inputHelper}>
-                  Your SnapScan handle or merchant ID. We will generate a QR code linking to: pos.snapscan.io/qr/...
-                </Text>
-              </View>
-            )}
 
             {selectedType === 'PayShap' && (
               <View style={styles.formGroup}>
@@ -297,7 +257,6 @@ export default function PaymentScreen({
               <View style={styles.configuredIconWrapper}>
                 <Ionicons 
                   name={
-                    paymentMethod.type === 'SnapScan' ? 'card-outline' : 
                     paymentMethod.type === 'PayShap' ? 'flash-outline' : 'business-outline'
                   } 
                   size={20} 
@@ -311,7 +270,6 @@ export default function PaymentScreen({
                   </Text>
                 </Text>
                 <Text style={styles.configuredDetails} numberOfLines={1}>
-                  {paymentMethod.type === 'SnapScan' && `Code: ${paymentMethod.details.code}`}
                   {paymentMethod.type === 'PayShap' && `ShapID: ${paymentMethod.details.shapID}`}
                   {paymentMethod.type === 'BankEFT' && `${paymentMethod.details.bankName} (${paymentMethod.details.accountNumber})`}
                 </Text>

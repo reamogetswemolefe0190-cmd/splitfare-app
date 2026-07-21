@@ -23,7 +23,7 @@ export default function App() {
   const [results, setResults] = useState([]); // Array of { name, amount, detailText }
 
   // Persisted Session Payment Method State (selected once per session)
-  const [paymentMethod, setPaymentMethod] = useState(null); // { type: 'SnapScan'|'PayShap'|'BankEFT', details: {...} }
+  const [paymentMethod, setPaymentMethod] = useState(null); // { type: 'PayShap'|'BankEFT', details: {...} }
 
   // Current selected person for payment request
   const [selectedPerson, setSelectedPerson] = useState(null); // { name, amount }
