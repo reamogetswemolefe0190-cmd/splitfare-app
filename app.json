@@ -22,6 +22,9 @@
     },
     "experiments": {
       "baseUrl": "/splitfare-app"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

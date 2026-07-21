@@ -9,7 +9,7 @@ export default function HomeScreen({ onSelectMode }) {
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Ionicons name="receipt-outline" size={40} color={COLORS.primary} />
+            <Ionicons name="calculator-outline" size={40} color={COLORS.primary} />
           </View>
           <Text style={styles.logo}>SplitFare</Text>
           <Text style={styles.subtitle}>Split bills instantly, no math required</Text>

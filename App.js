@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, StatusBar, Platform, useWindowDimensions } from 'react-native';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './src/styles/theme';
 import HomeScreen from './src/screens/HomeScreen';
 import TripScreen from './src/screens/TripScreen';
@@ -9,6 +11,9 @@ import PaymentScreen from './src/screens/PaymentScreen';
 
 export default function App() {
   const { width } = useWindowDimensions();
+  const [fontsLoaded] = useFonts({
+    Ionicons: require('./assets/fonts/Ionicons.ttf'),
+  });
 
   // Navigation stack state
   const [currentScreen, setCurrentScreen] = useState('HOME'); // 'HOME' | 'TRIP' | 'DINNER' | 'RESULTS' | 'PAYMENT'
@@ -104,6 +109,14 @@ export default function App() {
         return <HomeScreen onSelectMode={handleSelectMode} />;
     }
   };
+
+  if (!fontsLoaded) {
+    return (
+      <View style={[styles.container, { backgroundColor: COLORS.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      </View>
+    );
+  }
 
   return (
     <View style={[
