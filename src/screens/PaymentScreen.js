@@ -19,6 +19,7 @@ import { COLORS, FONTS, LAYOUT, SHADOWS } from '../styles/theme';
 export default function PaymentScreen({
   personName,
   amount,
+  payerName,
   paymentMethod,
   onSavePaymentMethod,
   onResetPaymentMethod,
@@ -34,7 +35,7 @@ export default function PaymentScreen({
   const [isInput2Focused, setIsInput2Focused] = useState(false);
 
   // Active view tab for the request: 'QR' | 'WhatsApp'
-  const [actionTab, setActionTab] = useState('QR');
+  const [actionTab, setActionTab] = useState('WhatsApp');
 
   // Handle saving payment details to session
   const handleSave = () => {
@@ -85,22 +86,23 @@ export default function PaymentScreen({
 
   if (paymentMethod) {
     const { type, details } = paymentMethod;
+    const payerText = payerName ? ` ${payerName}` : '';
 
     if (type === 'SnapScan') {
       const snapAmountCents = Math.round(amount * 100);
       paymentLink = `https://pos.snapscan.io/qr/${details.code}?amount=${snapAmountCents}`;
       qrCodeValue = paymentLink;
       paymentDetailsText = `SnapScan Code: ${details.code}\nLink: ${paymentLink}`;
-      whatsappMessage = `Hi ${personName}, you owe R${amount.toFixed(2)} for the split. Please pay using this SnapScan link: ${paymentLink}`;
+      whatsappMessage = `Hi ${personName}, you owe${payerText} R${amount.toFixed(2)} for the split. Please pay using this SnapScan link: ${paymentLink}`;
     } else if (type === 'PayShap') {
       // Experimental PayShap URI format
       paymentLink = `payshap://pay?id=${details.shapID}&amount=${amount.toFixed(2)}`;
       qrCodeValue = paymentLink;
       paymentDetailsText = `PayShap ID: ${details.shapID}\nLink (Experimental): ${paymentLink}`;
-      whatsappMessage = `Hi ${personName}, you owe R${amount.toFixed(2)} for the split. Please pay using PayShap to ShapID: ${details.shapID}. (Link: ${paymentLink})`;
+      whatsappMessage = `Hi ${personName}, you owe${payerText} R${amount.toFixed(2)} for the split. Please pay using PayShap to ShapID: ${details.shapID}. (Link: ${paymentLink})`;
     } else if (type === 'BankEFT') {
       paymentDetailsText = `Bank: ${details.bankName}\nAccount: ${details.accountNumber}\nAmount: R${amount.toFixed(2)}`;
-      whatsappMessage = `Hi ${personName}, you owe R${amount.toFixed(2)} for the split. Please pay via Bank EFT.\nBank: ${details.bankName}\nAccount Number: ${details.accountNumber}\nAmount: R${amount.toFixed(2)}`;
+      whatsappMessage = `Hi ${personName}, you owe${payerText} R${amount.toFixed(2)} for the split. Please pay via Bank EFT.\nBank: ${details.bankName}\nAccount Number: ${details.accountNumber}\nAmount: R${amount.toFixed(2)}`;
     }
   }
 

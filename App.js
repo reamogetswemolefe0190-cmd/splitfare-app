@@ -27,6 +27,7 @@ export default function App() {
 
   // Current selected person for payment request
   const [selectedPerson, setSelectedPerson] = useState(null); // { name, amount }
+  const [payerName, setPayerName] = useState('');
 
   // Detect if we are on a desktop/tablet web viewport
   const isLargeWeb = Platform.OS === 'web' && width > 480;
@@ -48,7 +49,8 @@ export default function App() {
     setCurrentScreen('RESULTS');
   };
 
-  const handleSelectPerson = (name, amount) => {
+  const handleSelectPerson = (name, amount, activePayer) => {
+    setPayerName(activePayer);
     setSelectedPerson({ name, amount });
     setCurrentScreen('PAYMENT');
   };
@@ -63,6 +65,7 @@ export default function App() {
     setResults([]);
     setPaymentMethod(null);
     setSelectedPerson(null);
+    setPayerName('');
     setCurrentScreen('HOME');
   };
 
@@ -99,6 +102,7 @@ export default function App() {
           <PaymentScreen
             personName={selectedPerson?.name}
             amount={selectedPerson?.amount || 0}
+            payerName={payerName}
             paymentMethod={paymentMethod}
             onSavePaymentMethod={setPaymentMethod}
             onResetPaymentMethod={() => setPaymentMethod(null)}
