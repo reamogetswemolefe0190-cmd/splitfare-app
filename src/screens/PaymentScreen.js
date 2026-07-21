@@ -441,10 +441,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     color: '#ffffff',
     fontSize: 15,
+    outlineStyle: 'none',
   },
   textInputFocused: {
     borderColor: COLORS.primary,
-    backgroundColor: 'rgba(99, 102, 241, 0.03)',
+    backgroundColor: 'rgba(59, 130, 246, 0.03)',
   },
   inputHelper: {
     ...FONTS.bodySmall,

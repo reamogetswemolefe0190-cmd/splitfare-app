@@ -372,9 +372,8 @@ export default function DinnerScreen({ onBack, onCalculate }) {
               <View style={styles.itemInputsRow}>
                 <TextInput
                   style={[
-                    styles.input, 
-                    { flex: 2 },
-                    isItemNameFocused && styles.inputFocused
+                    styles.itemInput,
+                    isItemNameFocused && styles.itemInputFocused
                   ]}
                   placeholder="Item name (e.g. Pizza)"
                   placeholderTextColor={COLORS.textMuted}
@@ -678,7 +677,7 @@ const styles = StyleSheet.create({
   },
   addInputRowFocused: {
     borderColor: COLORS.primary,
-    backgroundColor: 'rgba(99, 102, 241, 0.03)',
+    backgroundColor: 'rgba(59, 130, 246, 0.03)',
   },
   input: {
     flex: 1,
@@ -686,12 +685,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     color: '#ffffff',
     fontSize: 15,
+    outlineStyle: 'none',
   },
-  inputFocused: {
-    borderColor: COLORS.secondary,
-    borderWidth: 1,
+  itemInput: {
+    flex: 2,
+    height: 44,
+    paddingHorizontal: 12,
+    color: '#ffffff',
+    fontSize: 15,
+    backgroundColor: 'rgba(0,0,0,0.2)',
     borderRadius: LAYOUT.borderRadiusSmall,
-    backgroundColor: 'rgba(168, 85, 247, 0.03)',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    outlineStyle: 'none',
+  },
+  itemInputFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(59, 130, 246, 0.03)',
   },
   priceWrapper: {
     flex: 1,
@@ -704,20 +714,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   priceWrapperFocused: {
-    borderColor: COLORS.secondary,
-    backgroundColor: 'rgba(168, 85, 247, 0.03)',
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(59, 130, 246, 0.03)',
   },
   priceInput: {
     flex: 1,
     height: 44,
     color: '#ffffff',
     fontSize: 15,
-    paddingLeft: 4,
+    paddingLeft: 8,
+    outlineStyle: 'none',
   },
   currencySymbol: {
     color: COLORS.textSecondary,
     fontSize: 15,
     fontWeight: '600',
+    marginRight: 2,
   },
   actionBtn: {
     backgroundColor: COLORS.primary,
