@@ -1,40 +1,38 @@
 export const COLORS = {
-  background: '#090e1a',      // Extra deep slate
-  surface: '#151f32',         // Slate blue surface
-  surfaceCard: 'rgba(21, 31, 50, 0.7)', // Semi-transparent card
-  primary: '#6366f1',          // Indigo-500
-  primaryDark: '#4f46e5',      // Indigo-600
-  secondary: '#a855f7',        // Purple-500
-  accent: '#10b981',           // Emerald success
-  danger: '#f43f5e',           // Rose-500
-  border: '#2a3b5c',           // Soft metallic border
-  borderFocus: '#4f46e5',      // Indigo-600 border focus
-  text: '#f8fafc',             // Slate-50 white
+  background: '#0a0e17',      // Deep neutral Slate
+  surface: '#151d30',         // Solid Slate-900 surface
+  surfaceCard: '#151d30',     // Solid card backing (no fuzzy transparencies)
+  primary: '#3b82f6',          // Royal Trust Blue (standard for finance)
+  primaryDark: '#2563eb',      // Royal Blue Dark
+  secondary: '#64748b',        // Muted slate gray
+  accent: '#10b981',           // Emerald money green
+  danger: '#ef4444',           // Red alert
+  border: '#23304c',           // Clean, crisp border
+  borderFocus: '#3b82f6',      // Focused Blue border
+  text: '#ffffff',             // Crisp white text
   textSecondary: '#94a3b8',    // Slate-400 muted text
-  textMuted: '#64748b',        // Slate-500 deep muted text
-  overlay: 'rgba(9, 14, 26, 0.8)' // Background overlay
+  textMuted: '#475569',        // Slate-600 deep muted text
+  overlay: 'rgba(10, 14, 23, 0.85)'
 };
 
 export const FONTS = {
   titleLarge: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',         // Clean title bold
     color: COLORS.text,
-    letterSpacing: -0.5,
   },
   titleMedium: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     color: COLORS.text,
-    letterSpacing: -0.2,
   },
   titleSmall: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
   },
   bodyLarge: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '400',
     color: COLORS.text,
   },
@@ -49,40 +47,41 @@ export const FONTS = {
     color: COLORS.textSecondary,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#ffffff',
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   }
 };
 
 export const SHADOWS = {
   glow: {
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    // Glow is replaced by a flat soft shadow (no neon colors)
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   card: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   }
 };
 
 export const LAYOUT = {
-  padding: 20,
-  borderRadiusLarge: 20,
-  borderRadiusMedium: 14,
-  borderRadiusSmall: 8,
+  padding: 16,
+  borderRadiusLarge: 12,       // Tighter corners for professional look
+  borderRadiusMedium: 8,       // Tighter corners
+  borderRadiusSmall: 4,
   gap: 12,
 };

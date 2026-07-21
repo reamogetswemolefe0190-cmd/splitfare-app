@@ -21,7 +21,7 @@ export default function HomeScreen({ onSelectMode }) {
             onPress={() => onSelectMode('trip')}
             activeOpacity={0.85}
           >
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(99, 102, 241, 0.1)' }]}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
               <Ionicons name="car-outline" size={32} color={COLORS.primary} />
             </View>
             <View style={styles.cardTextContainer}>
@@ -40,8 +40,8 @@ export default function HomeScreen({ onSelectMode }) {
             onPress={() => onSelectMode('dinner')}
             activeOpacity={0.85}
           >
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(168, 85, 247, 0.1)' }]}>
-              <Ionicons name="restaurant-outline" size={32} color={COLORS.secondary} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+              <Ionicons name="restaurant-outline" size={32} color={COLORS.accent} />
             </View>
             <View style={styles.cardTextContainer}>
               <Text style={styles.cardTitle}>Dinner Mode</Text>
@@ -81,20 +81,17 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: 'rgba(59, 130, 246, 0.15)',
   },
   logo: {
     ...FONTS.titleLarge,
     fontSize: 34,
     color: '#ffffff',
-    textShadowColor: 'rgba(99, 102, 241, 0.3)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
   },
   subtitle: {
     ...FONTS.bodyLarge,
@@ -118,10 +115,10 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   tripCard: {
-    borderColor: 'rgba(99, 102, 241, 0.25)',
+    borderColor: 'rgba(59, 130, 246, 0.15)',
   },
   dinnerCard: {
-    borderColor: 'rgba(168, 85, 247, 0.25)',
+    borderColor: 'rgba(16, 185, 129, 0.15)',
   },
   iconContainer: {
     width: 58,

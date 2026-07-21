@@ -12,7 +12,6 @@ import {
   Platform
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, LAYOUT, SHADOWS } from '../styles/theme';
 
@@ -298,8 +297,8 @@ export default function PaymentScreen({
               <View style={styles.configuredIconWrapper}>
                 <Ionicons 
                   name={
-                    paymentMethod.type === 'SnapScan' ? 'qr-code' : 
-                    paymentMethod.type === 'PayShap' ? 'flash' : 'business'
+                    paymentMethod.type === 'SnapScan' ? 'card-outline' : 
+                    paymentMethod.type === 'PayShap' ? 'flash-outline' : 'business-outline'
                   } 
                   size={20} 
                   color={COLORS.primary} 
@@ -307,7 +306,7 @@ export default function PaymentScreen({
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.configuredTitle}>
-                  Receiving via: <Text style={{ color: '#ffffff' }}>
+                  Receiving via: <Text style={{ color: '#ffffff', fontWeight: '600' }}>
                     {paymentMethod.type === 'BankEFT' ? 'Bank EFT' : paymentMethod.type}
                   </Text>
                 </Text>
@@ -326,156 +325,29 @@ export default function PaymentScreen({
               </TouchableOpacity>
             </View>
 
-            {/* Share action sub-tabs */}
-            <View style={styles.actionTabsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.actionTab,
-                  actionTab === 'QR' && styles.actionTabActive
-                ]}
-                onPress={() => setActionTab('QR')}
-                activeOpacity={0.8}
-              >
-                <Ionicons 
-                  name="qr-code-outline" 
-                  size={18} 
-                  color={actionTab === 'QR' ? COLORS.primary : COLORS.textSecondary} 
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={[
-                  styles.actionTabText,
-                  actionTab === 'QR' && styles.actionTabTextActive
-                ]}>
-                  QR Code
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.actionTab,
-                  actionTab === 'WhatsApp' && styles.actionTabActive
-                ]}
-                onPress={() => setActionTab('WhatsApp')}
-                activeOpacity={0.8}
-              >
-                <Ionicons 
-                  name="logo-whatsapp" 
-                  size={18} 
-                  color={actionTab === 'WhatsApp' ? '#25D366' : COLORS.textSecondary} 
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={[
-                  styles.actionTabText,
-                  actionTab === 'WhatsApp' && styles.actionTabTextActive
-                ]}>
-                  WhatsApp
-                </Text>
-              </TouchableOpacity>
+            {/* MESSAGE PREVIEW CARD */}
+            <View style={styles.messagePreviewCard}>
+              <Text style={styles.previewLabel}>Message Preview (WhatsApp)</Text>
+              <View style={styles.previewBox}>
+                <Text style={styles.previewText}>{whatsappMessage}</Text>
+              </View>
             </View>
 
-            {/* TAB CONTENT: QR CODE */}
-            {actionTab === 'QR' && (
-              <View style={styles.qrContainer}>
-                {paymentMethod.type === 'BankEFT' ? (
-                  /* BANK EFT NO QR VIEW */
-                  <View style={styles.noQrCard}>
-                    <View style={styles.eftTicketHeader}>
-                      <Ionicons name="receipt-outline" size={24} color={COLORS.textSecondary} />
-                      <Text style={styles.noQrTitle}>Bank Account Ticket</Text>
-                    </View>
-                    <Text style={styles.noQrText}>
-                      Standard EFT transfers do not support QR deep links. Please copy the bank details below to pay:
-                    </Text>
+            {/* PRIMARY WHATSAPP ACTION BUTTON */}
+            <TouchableOpacity style={styles.whatsappBtn} onPress={handleWhatsAppShare} activeOpacity={0.85}>
+              <Ionicons name="logo-whatsapp" size={20} color="#ffffff" style={{ marginRight: 8 }} />
+              <Text style={styles.whatsappBtnText}>Send Request via WhatsApp</Text>
+            </TouchableOpacity>
 
-                    <View style={styles.eftDetailsBox}>
-                      <View style={styles.eftDetailLineRow}>
-                        <Text style={styles.eftLabel}>Bank:</Text>
-                        <Text style={styles.eftValue}>{paymentMethod.details.bankName}</Text>
-                      </View>
-                      <View style={styles.eftDetailLineRow}>
-                        <Text style={styles.eftLabel}>Account:</Text>
-                        <Text style={styles.eftValue}>{paymentMethod.details.accountNumber}</Text>
-                      </View>
-                      <View style={styles.eftDetailLineRow}>
-                        <Text style={styles.eftLabel}>Amount:</Text>
-                        <Text style={[styles.eftValue, { color: COLORS.accent, fontWeight: '700' }]}>R{amount.toFixed(2)}</Text>
-                      </View>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.copyDetailsBtn}
-                      onPress={() => copyToClipboard(
-                        `Bank: ${paymentMethod.details.bankName}\nAccount: ${paymentMethod.details.accountNumber}\nAmount: R${amount.toFixed(2)}`,
-                        'Bank details'
-                      )}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="copy-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                      <Text style={styles.copyDetailsBtnText}>Copy Bank Details</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  /* SNAPSCAN or PAYSHAP QR CODE VIEW */
-                  <View style={styles.qrCard}>
-                    {paymentMethod.type === 'PayShap' && (
-                      <View style={styles.alertWarning}>
-                        <Ionicons name="warning-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
-                        <Text style={styles.alertWarningText}>
-                          PayShap links are experimental. Verify link scanning.
-                        </Text>
-                      </View>
-                    )}
-
-                    <View style={styles.qrWrapper}>
-                      <QRCode
-                        value={qrCodeValue}
-                        size={180}
-                        color="#000000"
-                        backgroundColor="#ffffff"
-                      />
-                    </View>
-
-                    <Text style={styles.qrLinkText} numberOfLines={2}>
-                      {paymentLink}
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.copyLinkBtn}
-                      onPress={() => copyToClipboard(paymentLink, 'Payment link')}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="copy-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                      <Text style={styles.copyLinkBtnText}>Copy Payment Link</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* TAB CONTENT: WHATSAPP */}
-            {actionTab === 'WhatsApp' && (
-              <View style={styles.whatsappContainer}>
-                <View style={styles.messagePreviewCard}>
-                  <Text style={styles.previewLabel}>MESSAGE PREVIEW</Text>
-                  <View style={styles.previewBox}>
-                    <Text style={styles.previewText}>{whatsappMessage}</Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity style={styles.whatsappBtn} onPress={handleWhatsAppShare} activeOpacity={0.85}>
-                  <Ionicons name="logo-whatsapp" size={20} color="#ffffff" style={{ marginRight: 8 }} />
-                  <Text style={styles.whatsappBtnText}>Send Request via WhatsApp</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.copyMessageBtn}
-                  onPress={() => copyToClipboard(whatsappMessage, 'Request message')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="copy-outline" size={14} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-                  <Text style={styles.copyMessageBtnText}>Copy Message Text</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            {/* SECONDARY COPY BUTTON */}
+            <TouchableOpacity
+              style={styles.copyMessageBtn}
+              onPress={() => copyToClipboard(whatsappMessage, 'Request message')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="copy-outline" size={16} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={styles.copyMessageBtnText}>Copy Message Text</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
