@@ -12,6 +12,8 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import Tesseract from 'tesseract.js';
 import { COLORS, FONTS, LAYOUT, SHADOWS } from '../styles/theme';
 
 export default function DinnerScreen({ onBack, onCalculate }) {
@@ -27,6 +29,155 @@ export default function DinnerScreen({ onBack, onCalculate }) {
   const [isItemNameFocused, setIsItemNameFocused] = useState(false);
   const [isItemPriceFocused, setIsItemPriceFocused] = useState(false);
   const [selectedPeopleForNewItem, setSelectedPeopleForNewItem] = useState([]);
+ 
+  // Receipt scanning states
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scannedItems, setScannedItems] = useState([]); // List of parsed items from OCR
+ 
+  // Helper to parse receipt text using regex
+  const parseReceiptText = (text) => {
+    const lines = text.split('\n');
+    const parsedItems = [];
+    const priceRegex = /(?:R\s*)?(\d+[\.,]\d{2})\b/;
+    const ignoreKeywords = [
+      'total', 'subtotal', 'vat', 'tax', 'balance', 'change', 'cash', 'card', 
+      'slip', 'merchant', 'tel', 'phone', 'date', 'time', 'thank', 'you', 'invoice'
+    ];
+
+    lines.forEach(line => {
+      const cleanLine = line.trim();
+      if (!cleanLine) return;
+
+      const match = cleanLine.match(priceRegex);
+      if (match) {
+        const priceStr = match[1].replace(',', '.');
+        const price = parseFloat(priceStr);
+        if (!isNaN(price) && price > 0) {
+          let name = cleanLine.substring(0, match.index).trim();
+          name = name.replace(/^\d+x\s*/i, ''); // Clean "1x Pizza" -> "Pizza"
+          name = name.replace(/^[\s\-\*\.\+#\d]+/, ''); // Clean leading non-letters
+          name = name.trim();
+
+          const isIgnored = ignoreKeywords.some(keyword => 
+            name.toLowerCase().includes(keyword)
+          );
+
+          if (name.length > 2 && !isIgnored && price < 10000) {
+            parsedItems.push({
+              id: String(Math.random()),
+              name: name,
+              price: price,
+              selected: true,
+              assignedPeople: [...people] // Default assign to all current guests
+            });
+          }
+        }
+      }
+    });
+
+    return parsedItems;
+  };
+
+  const handleScanReceipt = async () => {
+    if (people.length === 0) {
+      Alert.alert('No Guests', 'Please add at least one guest first so we can assign items to them.');
+      return;
+    }
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need camera roll permissions to scan receipt photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 1.0,
+      });
+
+      if (result.canceled) return;
+      const imageUri = result.assets[0].uri;
+
+      setIsScanning(true);
+      setScanProgress(0);
+
+      const ocrResult = await Tesseract.recognize(
+        imageUri,
+        'eng',
+        {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setScanProgress(Math.round(m.progress * 100));
+            }
+          }
+        }
+      );
+
+      const itemsFound = parseReceiptText(ocrResult.data.text);
+      if (itemsFound.length === 0) {
+        Alert.alert(
+          'No Items Detected',
+          'We couldn\'t find any clear items and prices on this photo. Try taking a closer, well-lit picture.'
+        );
+      } else {
+        setScannedItems(itemsFound);
+      }
+    } catch (err) {
+      console.error('OCR Error:', err);
+      Alert.alert('Scan Failed', 'An error occurred while parsing the receipt. Please try again.');
+    } finally {
+      setIsScanning(false);
+      setScanProgress(0);
+    }
+  };
+
+  const toggleScannedItemSelect = (id) => {
+    setScannedItems(scannedItems.map(item => 
+      item.id === id ? { ...item, selected: !item.selected } : item
+    ));
+  };
+
+  const togglePayerForScannedItem = (itemId, personName) => {
+    setScannedItems(scannedItems.map(item => {
+      if (item.id === itemId) {
+        const alreadyAssigned = item.assignedPeople.includes(personName);
+        let newAssigned;
+        if (alreadyAssigned) {
+          if (item.assignedPeople.length === 1) {
+            Alert.alert('Warning', 'At least one person must be assigned to this item.');
+            return item;
+          }
+          newAssigned = item.assignedPeople.filter(p => p !== personName);
+        } else {
+          newAssigned = [...item.assignedPeople, personName];
+        }
+        return { ...item, assignedPeople: newAssigned };
+      }
+      return item;
+    }));
+  };
+
+  const importSelectedItems = () => {
+    const selected = scannedItems.filter(item => item.selected);
+    if (selected.length === 0) {
+      Alert.alert('No Items Selected', 'Please check at least one item to import.');
+      return;
+    }
+
+    const newItems = selected.map(item => ({
+      id: String(Date.now() + Math.random()),
+      name: item.name,
+      price: item.price,
+      assignedPeople: [...item.assignedPeople]
+    }));
+
+    setItems([...items, ...newItems]);
+    setScannedItems([]);
+    Alert.alert('Success!', `Imported ${selected.length} items to your bill list.`);
+  };
 
   // Add a participant
   const addPerson = () => {
@@ -210,7 +361,13 @@ export default function DinnerScreen({ onBack, onCalculate }) {
           {/* 2. Add Item Section */}
           {people.length > 0 && (
             <View style={styles.card}>
-              <Text style={styles.label}>2. Add Bill Item</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={[styles.label, { marginBottom: 0 }]}>2. Add Bill Item</Text>
+                <TouchableOpacity style={styles.scanReceiptBtn} onPress={handleScanReceipt} activeOpacity={0.75}>
+                  <Ionicons name="camera-outline" size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
+                  <Text style={styles.scanReceiptBtnText}>Scan Receipt</Text>
+                </TouchableOpacity>
+              </View>
               
               <View style={styles.itemInputsRow}>
                 <TextInput
@@ -359,6 +516,99 @@ export default function DinnerScreen({ onBack, onCalculate }) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* SCANNING PROGRESS OVERLAY */}
+      {isScanning && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <Ionicons name="scan-outline" size={40} color={COLORS.primary} style={{ marginBottom: 16 }} />
+            <Text style={styles.loadingText}>Analyzing Receipt...</Text>
+            <Text style={styles.loadingSubtext}>{scanProgress}% complete</Text>
+            <Text style={styles.loadingTip}>Tip: High contrast, well-lit photos work best.</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ITEMS IMPORT SELECTION MODAL */}
+      {scannedItems.length > 0 && (
+        <View style={styles.importModalContainer}>
+          <View style={styles.importModalCard}>
+            <View style={styles.importModalHeader}>
+              <Text style={styles.importModalTitle}>Select Items to Import</Text>
+              <TouchableOpacity onPress={() => setScannedItems([])}>
+                <Ionicons name="close" size={24} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.importModalList}>
+              {scannedItems.map(item => (
+                <View key={item.id} style={styles.importItemCard}>
+                  <View style={styles.importItemMainRow}>
+                    <TouchableOpacity
+                      style={styles.importItemCheckbox}
+                      onPress={() => toggleScannedItemSelect(item.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons
+                        name={item.selected ? "checkbox" : "square-outline"}
+                        size={20}
+                        color={item.selected ? COLORS.primary : COLORS.textSecondary}
+                      />
+                    </TouchableOpacity>
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                      <Text style={[
+                        styles.importItemName,
+                        !item.selected && { color: COLORS.textMuted, textDecorationLine: 'line-through' }
+                      ]}>{item.name}</Text>
+                      <Text style={[
+                        styles.importItemPrice,
+                        !item.selected && { color: COLORS.textMuted }
+                      ]}>R{item.price.toFixed(2)}</Text>
+                    </View>
+                  </View>
+                  
+                  {item.selected && (
+                    <View style={styles.importAssignContainer}>
+                      <Text style={styles.importAssignLabel}>Split among:</Text>
+                      <View style={styles.importAssignChips}>
+                        {people.map(p => {
+                          const isAssigned = item.assignedPeople.includes(p);
+                          return (
+                            <TouchableOpacity
+                              key={p}
+                              style={[
+                                styles.importAssignChip,
+                                isAssigned && styles.importAssignChipActive
+                              ]}
+                              onPress={() => togglePayerForScannedItem(item.id, p)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={[
+                                styles.importAssignChipText,
+                                isAssigned && styles.importAssignChipTextActive
+                              ]}>{p}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.importModalActions}>
+              <TouchableOpacity
+                style={styles.importConfirmBtn}
+                onPress={importSelectedItems}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.importConfirmBtnText}>Import {scannedItems.filter(i => i.selected).length} Items</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -667,6 +917,166 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   calculateButtonText: {
+    ...FONTS.buttonText,
+  },
+  scanReceiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderColor: COLORS.primary,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  scanReceiptBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 14, 23, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  loadingBox: {
+    backgroundColor: COLORS.surface,
+    padding: 24,
+    borderRadius: LAYOUT.borderRadiusLarge,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    width: '80%',
+    maxWidth: 320,
+    ...SHADOWS.card,
+  },
+  loadingText: {
+    ...FONTS.titleMedium,
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    ...FONTS.bodyLarge,
+    color: COLORS.primary,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  loadingTip: {
+    ...FONTS.bodySmall,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  importModalContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 14, 23, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 998,
+    padding: 16,
+  },
+  importModalCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: LAYOUT.borderRadiusLarge,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    width: '100%',
+    maxHeight: '85%',
+    ...SHADOWS.card,
+  },
+  importModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  importModalTitle: {
+    ...FONTS.titleMedium,
+    color: '#ffffff',
+  },
+  importModalList: {
+    padding: 16,
+  },
+  importItemCard: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: LAYOUT.borderRadiusMedium,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 12,
+  },
+  importItemMainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  importItemCheckbox: {
+    padding: 4,
+  },
+  importItemName: {
+    ...FONTS.titleSmall,
+    color: '#ffffff',
+  },
+  importItemPrice: {
+    ...FONTS.bodyMedium,
+    color: COLORS.accent,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  importAssignContainer: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  importAssignLabel: {
+    ...FONTS.bodySmall,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+  },
+  importAssignChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  importAssignChip: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  importAssignChipActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: COLORS.primary,
+  },
+  importAssignChipText: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  importAssignChipTextActive: {
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  importModalActions: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  importConfirmBtn: {
+    backgroundColor: COLORS.primary,
+    height: 48,
+    borderRadius: LAYOUT.borderRadiusMedium,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.glow,
+  },
+  importConfirmBtnText: {
     ...FONTS.buttonText,
   },
 });
