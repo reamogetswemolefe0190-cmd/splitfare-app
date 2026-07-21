@@ -368,30 +368,31 @@ export default function DinnerScreen({ onBack, onCalculate }) {
                   <Text style={styles.scanReceiptBtnText}>Scan Receipt</Text>
                 </TouchableOpacity>
               </View>
-              
-              <View style={styles.itemInputsRow}>
+              <View style={styles.formGroup}>
+                <Text style={styles.inputLabel}>Item Name</Text>
                 <TextInput
                   style={[
-                    styles.itemInput,
-                    isItemNameFocused && styles.itemInputFocused
+                    styles.itemInputFull,
+                    isItemNameFocused && styles.itemInputFullFocused
                   ]}
-                  placeholder="Item name (e.g. Pizza)"
+                  placeholder="e.g. Margarita Pizza"
                   placeholderTextColor={COLORS.textMuted}
                   value={itemNameInput}
                   onChangeText={setItemNameInput}
                   onFocus={() => setIsItemNameFocused(true)}
                   onBlur={() => setIsItemNameFocused(false)}
                 />
+              </View>
+
+              <View style={[styles.formGroup, { marginTop: 12 }]}>
+                <Text style={styles.inputLabel}>Price</Text>
                 <View style={[
-                  styles.priceWrapper,
-                  isItemPriceFocused && styles.priceWrapperFocused
+                  styles.priceInputWrapperFull,
+                  isItemPriceFocused && styles.priceInputWrapperFullFocused
                 ]}>
-                  <Text style={[
-                    styles.currencySymbol,
-                    isItemPriceFocused && { color: COLORS.secondary }
-                  ]}>R</Text>
+                  <Text style={styles.currencySymbolFull}>R</Text>
                   <TextInput
-                    style={[styles.priceInput]}
+                    style={styles.priceInputFull}
                     placeholder="0.00"
                     placeholderTextColor={COLORS.textMuted}
                     keyboardType="decimal-pad"
@@ -420,7 +421,7 @@ export default function DinnerScreen({ onBack, onCalculate }) {
                       <Ionicons 
                         name={isSelected ? "checkbox" : "square-outline"} 
                         size={16} 
-                        color={isSelected ? COLORS.secondary : COLORS.textSecondary} 
+                        color={isSelected ? COLORS.primary : COLORS.textSecondary} 
                         style={{ marginRight: 6 }} 
                       />
                       <Text style={[
@@ -435,7 +436,7 @@ export default function DinnerScreen({ onBack, onCalculate }) {
               </View>
 
               <TouchableOpacity style={styles.addItemBtn} onPress={addItem} activeOpacity={0.8}>
-                <Ionicons name="add-circle" size={18} color={COLORS.secondary} style={{ marginRight: 6 }} />
+                <Ionicons name="add-circle" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
                 <Text style={styles.addItemBtnText}>Add Item to Bill</Text>
               </TouchableOpacity>
             </View>
@@ -687,49 +688,55 @@ const styles = StyleSheet.create({
     fontSize: 15,
     outlineStyle: 'none',
   },
-  itemInput: {
-    flex: 2,
-    height: 44,
+  formGroup: {
+    width: '100%',
+  },
+  inputLabel: {
+    ...FONTS.label,
+    fontSize: 11,
+    marginBottom: 8,
+  },
+  itemInputFull: {
+    height: 48,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderRadius: LAYOUT.borderRadiusSmall,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     paddingHorizontal: 12,
     color: '#ffffff',
     fontSize: 15,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: LAYOUT.borderRadiusSmall,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     outlineStyle: 'none',
   },
-  itemInputFocused: {
+  itemInputFullFocused: {
     borderColor: COLORS.primary,
     backgroundColor: 'rgba(59, 130, 246, 0.03)',
   },
-  priceWrapper: {
-    flex: 1,
+  priceInputWrapperFull: {
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
     borderRadius: LAYOUT.borderRadiusSmall,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
-  priceWrapperFocused: {
+  priceInputWrapperFullFocused: {
     borderColor: COLORS.primary,
     backgroundColor: 'rgba(59, 130, 246, 0.03)',
   },
-  priceInput: {
+  priceInputFull: {
     flex: 1,
-    height: 44,
+    height: '100%',
     color: '#ffffff',
     fontSize: 15,
     paddingLeft: 8,
     outlineStyle: 'none',
   },
-  currencySymbol: {
+  currencySymbolFull: {
     color: COLORS.textSecondary,
     fontSize: 15,
     fontWeight: '600',
-    marginRight: 2,
   },
   actionBtn: {
     backgroundColor: COLORS.primary,
@@ -773,10 +780,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  itemInputsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
   selectionChipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -794,8 +797,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   selectChipActive: {
-    backgroundColor: 'rgba(168, 85, 247, 0.12)',
-    borderColor: COLORS.secondary,
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderColor: COLORS.primary,
   },
   selectChipText: {
     ...FONTS.bodyMedium,
@@ -806,18 +809,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addItemBtn: {
-    backgroundColor: 'rgba(168, 85, 247, 0.05)',
-    borderColor: COLORS.secondary,
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderColor: COLORS.primary,
     borderWidth: 1,
     height: 44,
     borderRadius: LAYOUT.borderRadiusMedium,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 16,
   },
   addItemBtnText: {
     ...FONTS.bodyMedium,
-    color: COLORS.secondary,
+    color: COLORS.primary,
     fontWeight: '600',
   },
   sectionTitle: {
