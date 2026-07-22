@@ -1,18 +1,18 @@
 export const COLORS = {
-  background: '#0a0e17',      // Deep neutral Slate
-  surface: '#151d30',         // Solid Slate-900 surface
-  surfaceCard: '#151d30',     // Solid card backing (no fuzzy transparencies)
-  primary: '#3b82f6',          // Royal Trust Blue (standard for finance)
-  primaryDark: '#2563eb',      // Royal Blue Dark
-  secondary: '#64748b',        // Muted slate gray
+  background: '#0a0b12',      // Deep dark backing with a hint of purple
+  surface: '#141322',         // Slate-purple surface
+  surfaceCard: '#141322',     // Solid surface card
+  primary: '#7c3aed',          // Royal Purple (600)
+  primaryDark: '#6d28d9',      // Deep Purple (700)
+  secondary: '#a855f7',        // Purple (500)
   accent: '#10b981',           // Emerald money green
   danger: '#ef4444',           // Red alert
-  border: '#23304c',           // Clean, crisp border
-  borderFocus: '#3b82f6',      // Focused Blue border
+  border: '#1f1b33',           // Dark purple border
+  borderFocus: '#7c3aed',      // Focused Purple border
   text: '#ffffff',             // Crisp white text
   textSecondary: '#94a3b8',    // Slate-400 muted text
   textMuted: '#475569',        // Slate-600 deep muted text
-  overlay: 'rgba(10, 14, 23, 0.85)'
+  overlay: 'rgba(10, 11, 18, 0.85)'
 };
 
 export const FONTS = {

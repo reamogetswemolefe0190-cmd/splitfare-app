@@ -3,6 +3,7 @@ import { View, StyleSheet, StatusBar, Platform, useWindowDimensions } from 'reac
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './src/styles/theme';
+import LandingScreen from './src/screens/LandingScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import TripScreen from './src/screens/TripScreen';
 import DinnerScreen from './src/screens/DinnerScreen';
@@ -16,7 +17,7 @@ export default function App() {
   });
 
   // Navigation stack state
-  const [currentScreen, setCurrentScreen] = useState('HOME'); // 'HOME' | 'TRIP' | 'DINNER' | 'RESULTS' | 'PAYMENT'
+  const [currentScreen, setCurrentScreen] = useState(Platform.OS === 'web' ? 'LANDING' : 'HOME'); // 'LANDING' | 'HOME' | 'TRIP' | 'DINNER' | 'RESULTS' | 'PAYMENT'
   const [mode, setMode] = useState(null); // 'trip' | 'dinner'
 
   // Calculations/Results State
@@ -72,6 +73,8 @@ export default function App() {
   // Render active screen
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'LANDING':
+        return <LandingScreen onCreateGroup={() => setCurrentScreen('HOME')} />;
       case 'HOME':
         return <HomeScreen onSelectMode={handleSelectMode} />;
       case 'TRIP':
@@ -128,12 +131,18 @@ export default function App() {
       !isLargeWeb && { backgroundColor: COLORS.background } // Full screen color on mobile
     ]}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-      <View style={[
-        styles.appWrapper,
-        isLargeWeb ? styles.desktopWrapper : styles.mobileWrapper
-      ]}>
-        {renderScreen()}
-      </View>
+      {currentScreen === 'LANDING' ? (
+        <View style={{ flex: 1, width: '100%' }}>
+          {renderScreen()}
+        </View>
+      ) : (
+        <View style={[
+          styles.appWrapper,
+          isLargeWeb ? styles.desktopWrapper : styles.mobileWrapper
+        ]}>
+          {renderScreen()}
+        </View>
+      )}
     </View>
   );
 }
