@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,20 @@ import {
   SafeAreaView,
   useWindowDimensions,
   Platform,
-  Alert
+  Alert,
+  Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, LAYOUT, SHADOWS } from '../styles/theme';
 
 export default function LandingScreen({ onCreateGroup }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const scrollViewRef = useRef(null);
 
   // Responsive breakpoints
   const isDesktop = width > 768;
 
-  // Section positions for scrolling
+  // Layout Y positions for scrolling
   const [howItWorksY, setHowItWorksY] = useState(0);
   const [useCasesY, setUseCasesY] = useState(0);
 
@@ -34,30 +35,72 @@ export default function LandingScreen({ onCreateGroup }) {
     }
   };
 
+  // Hero Phone float animation (8-second loop translateY: 0 -> -6 -> 0)
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const floatSequence = Animated.sequence([
+      Animated.timing(floatAnim, {
+        toValue: -6,
+        duration: 4000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(floatAnim, {
+        toValue: 0,
+        duration: 4000,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    Animated.loop(floatSequence).start();
+  }, [floatAnim]);
+
   // Interactive Demo State
-  const [billTotal, setBillTotal] = useState('800');
-  const [peopleCount, setPeopleCount] = useState('4');
-  const [demoResult, setDemoResult] = useState(null);
+  const [demoSplitType, setDemoSplitType] = useState('Dinner'); // 'Dinner' | 'Trip' | 'Rent' | 'Event'
+  const [demoAmount, setDemoAmount] = useState('800');
+  const [demoGuests, setDemoGuests] = useState('4');
+  const [demoPayer, setDemoPayer] = useState('Rea');
+  const [demoCalculating, setDemoCalculating] = useState(false);
+  const [demoShowResults, setDemoShowResults] = useState(false);
 
-  const handleDemoCalculate = () => {
-    const total = parseFloat(billTotal);
-    const people = parseInt(peopleCount);
+  // Count-up animation value for splits
+  const [animatedShare, setAnimatedShare] = useState(0);
 
-    if (isNaN(total) || total <= 0) {
-      Alert.alert('Invalid Bill', 'Please enter a valid bill amount.');
+  const handleDemoSplit = () => {
+    const amt = parseFloat(demoAmount);
+    const guests = parseInt(demoGuests);
+
+    if (isNaN(amt) || amt <= 0) {
+      Alert.alert('Invalid Bill', 'Please enter a valid amount.');
       return;
     }
-    if (isNaN(people) || people <= 0) {
-      Alert.alert('Invalid People', 'Please enter a valid number of people.');
+    if (isNaN(guests) || guests <= 1) {
+      Alert.alert('Invalid Guests', 'Please enter a valid number of guests (at least 2).');
       return;
     }
 
-    const share = total / people;
-    setDemoResult(share);
+    setDemoCalculating(true);
+    setDemoShowResults(false);
+
+    // Simulate network/calculating delay (1 second)
+    setTimeout(() => {
+      setDemoCalculating(false);
+      setDemoShowResults(true);
+
+      const targetShare = amt / guests;
+      // Smooth count up animation
+      let currentVal = 0;
+      const step = targetShare / 25;
+      const interval = setInterval(() => {
+        currentVal += step;
+        if (currentVal >= targetShare) {
+          setAnimatedShare(targetShare);
+          clearInterval(interval);
+        } else {
+          setAnimatedShare(currentVal);
+        }
+      }, 20);
+    }, 1000);
   };
-
-  // Watch Demo Modal State
-  const [showDemoVideo, setShowDemoVideo] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -77,7 +120,7 @@ export default function LandingScreen({ onCreateGroup }) {
               <Text style={styles.navLinkText}>Use Cases</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              onPress={() => Alert.alert('100% Free', 'SplitFare is completely free to use. No hidden fees or subscriptions!')} 
+              onPress={() => Alert.alert('100% Free', 'SplitFare is completely free. We do not charge anything for group ledger splits.')} 
               style={styles.navLinkItem}
             >
               <Text style={styles.navLinkText}>Pricing</Text>
@@ -96,250 +139,266 @@ export default function LandingScreen({ onCreateGroup }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 2. HERO SECTION */}
-        <View style={[styles.section, styles.heroSection, isDesktop ? styles.rowLayout : styles.columnLayout]}>
+        {/* 2. HERO SECTION (100vh height approximation for web) */}
+        <View style={[
+          styles.heroSection, 
+          isDesktop ? styles.rowLayout : styles.columnLayout,
+          Platform.OS === 'web' && isDesktop && { minHeight: height - 70 }
+        ]}>
+          {/* Subtle Radial Gradient overlay */}
+          <View style={styles.heroGradientOverlay} />
+
           <View style={[styles.heroLeft, isDesktop ? { marginRight: 40 } : { marginBottom: 60 }]}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>INTRODUCING SPLITFARE</Text>
-            </View>
-            <Text style={[styles.heroTitle, { fontSize: width > 1200 ? 56 : width > 480 ? 44 : 32 }]}>
-              Split expenses.{"\n"}Without awkward conversations.
+            <Text style={[styles.heroTitle, { fontSize: width > 1200 ? 64 : width > 480 ? 48 : 36 }]}>
+              Stop calculating{"\n"}who owes who.
             </Text>
             <Text style={styles.heroSubtitle}>
-              Track shared expenses, split bills instantly, and settle up with friends.
+              SplitFare tracks shared expenses, calculates settlements instantly, and keeps everyone accountable.
             </Text>
             
             <View style={styles.heroCtaRow}>
               <TouchableOpacity style={styles.heroPrimaryBtn} onPress={onCreateGroup} activeOpacity={0.85}>
-                <Text style={styles.heroPrimaryBtnText}>Create a Group</Text>
+                <Text style={styles.heroPrimaryBtnText}>Start Splitting</Text>
                 <Ionicons name="arrow-forward" size={16} color="#ffffff" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={styles.heroSecondaryBtn} 
-                onPress={() => setShowDemoVideo(true)}
+                onPress={() => scrollToSection(howItWorksY)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="play-circle-outline" size={20} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.heroSecondaryBtnText}>Watch Demo</Text>
+                <Text style={styles.heroSecondaryBtnText}>Try Demo</Text>
               </TouchableOpacity>
-            </View>
-
-            <View style={styles.ratingContainer}>
-              <Text style={styles.starsText}>★★★★★</Text>
-              <Text style={styles.ratingSubtext}>Used by students, roommates and travellers</Text>
             </View>
           </View>
 
-          {/* PHONE MOCKUP (Right Side) */}
-          <View style={styles.heroRight}>
-            <View style={styles.phoneMockup}>
-              {/* Phone Speaker & Camera notches */}
-              <View style={styles.phoneNotch} />
-              
-              {/* Simulated Screen */}
-              <View style={styles.phoneScreen}>
-                {/* Phone Status Bar */}
-                <View style={styles.phoneStatusBar}>
-                  <Text style={styles.statusBarTime}>09:41</Text>
-                  <View style={styles.statusBarIcons}>
-                    <Ionicons name="wifi" size={12} color="#94a3b8" style={{ marginRight: 4 }} />
-                    <Ionicons name="battery-full" size={14} color="#94a3b8" />
+          {/* FLOATING PHONE MOCKUP (occupies 60% visual space on desktop) */}
+          <View style={[styles.heroRight, isDesktop ? { flex: 1.5 } : { width: '100%' }]}>
+            <Animated.View style={[styles.phoneMockupContainer, { transform: [{ translateY: floatAnim }] }]}>
+              <View style={styles.phoneMockup}>
+                {/* Phone Speaker Notch */}
+                <View style={styles.phoneNotch} />
+                
+                {/* Simulated Screen */}
+                <View style={styles.phoneScreen}>
+                  {/* Phone Status Bar */}
+                  <View style={styles.phoneStatusBar}>
+                    <Text style={styles.statusBarTime}>09:41</Text>
+                    <View style={styles.statusBarIcons}>
+                      <Ionicons name="wifi" size={12} color="#94a3b8" style={{ marginRight: 4 }} />
+                      <Ionicons name="battery-full" size={14} color="#94a3b8" />
+                    </View>
+                  </View>
+
+                  {/* Phone Header */}
+                  <View style={styles.phoneHeader}>
+                    <Text style={styles.phoneTripTitle}>Cape Town Weekend</Text>
+                    <Text style={styles.phoneTripTotal}>Total Expenses</Text>
+                    <Text style={styles.phoneTripTotalVal}>R4,200</Text>
+                  </View>
+
+                  {/* Contributors Ledger */}
+                  <View style={styles.phoneList}>
+                    <View style={styles.phoneListItem}>
+                      <Text style={styles.phoneListText}><Text style={{ fontWeight: '700' }}>Rea</Text> paid</Text>
+                      <Text style={[styles.phoneListAmount, { color: COLORS.accent }]}>R2,500</Text>
+                    </View>
+                    <View style={styles.phoneListItem}>
+                      <Text style={styles.phoneListText}><Text style={{ fontWeight: '700' }}>John</Text> paid</Text>
+                      <Text style={styles.phoneListAmount}>R900</Text>
+                    </View>
+                    <View style={styles.phoneListItem}>
+                      <Text style={styles.phoneListText}><Text style={{ fontWeight: '700' }}>Sarah</Text> paid</Text>
+                      <Text style={styles.phoneListAmount}>R800</Text>
+                    </View>
+                  </View>
+
+                  {/* Settlement Card */}
+                  <View style={styles.phoneSettlementCard}>
+                    <Text style={styles.phoneSettlementTitle}>Settlement</Text>
+                    <View style={styles.phoneSettlementRow}>
+                      <Text style={styles.phoneSettlementText}>John owes Rea</Text>
+                      <Text style={styles.phoneSettlementValue}>R500</Text>
+                    </View>
+                    <View style={styles.phoneSettlementRow}>
+                      <Text style={styles.phoneSettlementText}>Sarah owes Rea</Text>
+                      <Text style={styles.phoneSettlementValue}>R600</Text>
+                    </View>
+                  </View>
+
+                  {/* Status Badge */}
+                  <View style={styles.phoneStatusBadge}>
+                    <Ionicons name="checkmark-circle" size={14} color={COLORS.accent} style={{ marginRight: 4 }} />
+                    <Text style={styles.phoneStatusText}>Ready to settle</Text>
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+          </View>
+        </View>
+
+        {/* 3. INTERACTIVE DEMO (THE CENTERPIECE) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeadingLabel}>INTERACTIVE DEMO</Text>
+          <Text style={styles.sectionTitleText}>Experience SplitFare Live</Text>
+
+          <View style={[styles.demoOuterCard, isDesktop ? { width: 680 } : { width: '100%' }]}>
+            <Text style={styles.demoCardHeader}>Quick Splitting Sandbox</Text>
+            
+            <View style={isDesktop ? styles.demoGridRow : styles.demoGridColumn}>
+              {/* Left Form */}
+              <View style={{ flex: 1, gap: 16 }}>
+                {/* Split Type Selector */}
+                <View style={styles.demoInputGroup}>
+                  <Text style={styles.demoLabel}>What are you splitting?</Text>
+                  <View style={styles.demoSplitSelector}>
+                    {['Dinner', 'Trip', 'Rent', 'Event'].map(type => (
+                      <TouchableOpacity 
+                        key={type}
+                        style={[styles.demoSplitTab, demoSplitType === type && styles.demoSplitTabActive]}
+                        onPress={() => setDemoSplitType(type)}
+                      >
+                        <Text style={[styles.demoSplitTabText, demoSplitType === type && styles.demoSplitTabTextActive]}>
+                          {type === 'Dinner' ? '🍔 Dinner' : type === 'Trip' ? '✈ Trip' : type === 'Rent' ? '🏠 Rent' : '🎉 Event'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
 
-                {/* Simulated Screen Header */}
-                <View style={styles.phoneHeader}>
-                  <Text style={styles.phoneTripTitle}>Cape Town Trip</Text>
-                  <Text style={styles.phoneTripTotal}>Total Spent: R3,200.00</Text>
-                </View>
-
-                {/* Simulated Contributors */}
-                <View style={styles.phoneList}>
-                  <View style={styles.phoneListItem}>
-                    <View style={styles.avatarMini}><Text style={styles.avatarMiniText}>R</Text></View>
-                    <Text style={styles.phoneListText}>Rea paid</Text>
-                    <Text style={[styles.phoneListAmount, { color: COLORS.accent }]}>R1,500</Text>
-                  </View>
-                  <View style={styles.phoneListItem}>
-                    <View style={styles.avatarMini}><Text style={styles.avatarMiniText}>J</Text></View>
-                    <Text style={styles.phoneListText}>John paid</Text>
-                    <Text style={styles.phoneListAmount}>R700</Text>
-                  </View>
-                  <View style={styles.phoneListItem}>
-                    <View style={styles.avatarMini}><Text style={styles.avatarMiniText}>S</Text></View>
-                    <Text style={styles.phoneListText}>Sarah paid</Text>
-                    <Text style={styles.phoneListAmount}>R1,000</Text>
+                {/* Amount */}
+                <View style={styles.demoInputGroup}>
+                  <Text style={styles.demoLabel}>How much was spent?</Text>
+                  <View style={styles.demoPriceBox}>
+                    <Text style={styles.demoCurrency}>R</Text>
+                    <TextInput 
+                      style={styles.demoTextfield}
+                      value={demoAmount}
+                      onChangeText={setDemoAmount}
+                      keyboardType="numeric"
+                    />
                   </View>
                 </View>
 
-                {/* Simulated Settlement Card */}
-                <View style={styles.phoneSettlementCard}>
-                  <Text style={styles.phoneSettlementTitle}>Settlement Ledger</Text>
-                  <View style={styles.phoneSettlementRow}>
-                    <Ionicons name="arrow-redo" size={12} color="#ef4444" style={{ marginRight: 6 }} />
-                    <Text style={styles.phoneSettlementText}>John owes Rea</Text>
-                    <Text style={styles.phoneSettlementValue}>R366</Text>
-                  </View>
-                  <View style={styles.phoneSettlementRow}>
-                    <Ionicons name="arrow-redo" size={12} color="#ef4444" style={{ marginRight: 6 }} />
-                    <Text style={styles.phoneSettlementText}>Sarah owes Rea</Text>
-                    <Text style={styles.phoneSettlementValue}>R133</Text>
-                  </View>
-
-                  <TouchableOpacity style={styles.phoneSettleBtn} activeOpacity={0.8}>
-                    <Text style={styles.phoneSettleBtnText}>Settle Up</Text>
-                  </TouchableOpacity>
+                {/* People Count */}
+                <View style={styles.demoInputGroup}>
+                  <Text style={styles.demoLabel}>How many people?</Text>
+                  <TextInput 
+                    style={styles.demoInputSimple}
+                    value={demoGuests}
+                    onChangeText={setDemoGuests}
+                    keyboardType="numeric"
+                  />
                 </View>
+
+                {/* Who Paid */}
+                <View style={styles.demoInputGroup}>
+                  <Text style={styles.demoLabel}>Who paid?</Text>
+                  <View style={styles.demoSplitSelector}>
+                    {['Rea', 'John', 'Sarah'].map(p => (
+                      <TouchableOpacity 
+                        key={p}
+                        style={[styles.demoPayerTab, demoPayer === p && styles.demoPayerTabActive]}
+                        onPress={() => setDemoPayer(p)}
+                      >
+                        <Text style={[styles.demoPayerTabText, demoPayer === p && styles.demoPayerTabTextActive]}>{p}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.demoCalcBtn} onPress={handleDemoSplit} activeOpacity={0.85}>
+                  <Text style={styles.demoCalcBtnText}>Calculate</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Right Output Area */}
+              <View style={[styles.demoOutputPanel, !isDesktop && { marginTop: 24 }]}>
+                {demoCalculating ? (
+                  <View style={styles.demoStatusBox}>
+                    <Text style={styles.demoStatusText}>Calculating...</Text>
+                  </View>
+                ) : demoShowResults ? (
+                  <View style={styles.demoResultsBox}>
+                    <Text style={styles.demoResultsHeader}>Settlements</Text>
+                    {['John', 'Sarah', 'Mike', 'Kate'].filter(p => p !== demoPayer).slice(0, parseInt(demoGuests) - 1).map((p, idx) => (
+                      <View key={p} style={styles.demoResultRow}>
+                        <Ionicons name="arrow-redo" size={14} color="#ef4444" style={{ marginRight: 6 }} />
+                        <Text style={styles.demoResultText}>{p} owes {demoPayer}</Text>
+                        <Text style={styles.demoResultValue}>R {animatedShare.toFixed(2)}</Text>
+                      </View>
+                    ))}
+                    <View style={styles.demoResultSuccess}>
+                      <Ionicons name="checkmark-done" size={16} color={COLORS.accent} style={{ marginRight: 6 }} />
+                      <Text style={styles.demoResultSuccessText}>Values split automatically</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.demoPlaceholderBox}>
+                    <Ionicons name="sparkles" size={32} color={COLORS.primary} style={{ marginBottom: 12 }} />
+                    <Text style={styles.demoPlaceholderText}>Enter split values and click calculate to test settlements.</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
         </View>
 
-        {/* 3. HOW IT WORKS SECTION */}
+        {/* 5. HOW IT WORKS SECTION (TIMELINE LAYOUT) */}
         <View 
           onLayout={(e) => { setHowItWorksY(e.nativeEvent.layout.y); }}
           style={[styles.section, styles.darkBgSection]}
         >
-          <Text style={styles.sectionHeadingLabel}>STEP-BY-STEP</Text>
+          <Text style={styles.sectionHeadingLabel}>TIMELINE</Text>
           <Text style={styles.sectionTitleText}>How It Works</Text>
-          
-          <View style={[styles.howItWorksGrid, isDesktop ? styles.rowLayout : styles.columnLayout]}>
-            <View style={styles.howItWorksCard}>
-              <View style={styles.stepIconWrapper}>
-                <Ionicons name="people-outline" size={24} color={COLORS.primary} />
+
+          {/* Timeline Wrapper */}
+          <View style={[styles.timelineContainer, isDesktop ? styles.rowLayout : styles.columnLayout]}>
+            {/* Node 1 */}
+            <View style={styles.timelineNode}>
+              <View style={styles.timelineIconBox}>
+                <Ionicons name="people" size={24} color={COLORS.primary} />
               </View>
-              <Text style={styles.stepTitle}>1. Create Group</Text>
-              <Text style={styles.stepDescription}>
-                Planning a trip, moving in together, or sharing rent? Start a group in seconds.
-              </Text>
+              <Text style={styles.timelineNodeTitle}>Create Group</Text>
+              <Text style={styles.timelineNodeText}>Start a group for trips, roommates or events.</Text>
             </View>
 
-            <View style={styles.howItWorksCard}>
-              <View style={styles.stepIconWrapper}>
-                <Ionicons name="wallet-outline" size={24} color={COLORS.primary} />
+            {isDesktop && <View style={styles.timelineArrow}><Ionicons name="arrow-forward" size={18} color={COLORS.primary} /></View>}
+
+            {/* Node 2 */}
+            <View style={styles.timelineNode}>
+              <View style={styles.timelineIconBox}>
+                <Ionicons name="card" size={24} color={COLORS.primary} />
               </View>
-              <Text style={styles.stepTitle}>2. Add Expenses</Text>
-              <Text style={styles.stepDescription}>
-                Enter item totals, add who paid for them, and specify how much they cost.
-              </Text>
+              <Text style={styles.timelineNodeTitle}>Add Expenses</Text>
+              <Text style={styles.timelineNodeText}>Record who paid and how much.</Text>
             </View>
 
-            <View style={styles.howItWorksCard}>
-              <View style={styles.stepIconWrapper}>
-                <Ionicons name="git-compare-outline" size={24} color={COLORS.primary} />
+            {isDesktop && <View style={styles.timelineArrow}><Ionicons name="arrow-forward" size={18} color={COLORS.primary} /></View>}
+
+            {/* Node 3 */}
+            <View style={styles.timelineNode}>
+              <View style={styles.timelineIconBox}>
+                <Ionicons name="git-compare" size={24} color={COLORS.primary} />
               </View>
-              <Text style={styles.stepTitle}>3. Split Automatically</Text>
-              <Text style={styles.stepDescription}>
-                Split equally among all members or customize individual contributions.
-              </Text>
+              <Text style={styles.timelineNodeTitle}>Split Automatically</Text>
+              <Text style={styles.timelineNodeText}>Split equally or customize shares.</Text>
             </View>
 
-            <View style={styles.howItWorksCard}>
-              <View style={styles.stepIconWrapper}>
-                <Ionicons name="checkmark-circle-outline" size={24} color={COLORS.primary} />
+            {isDesktop && <View style={styles.timelineArrow}><Ionicons name="arrow-forward" size={18} color={COLORS.primary} /></View>}
+
+            {/* Node 4 */}
+            <View style={styles.timelineNode}>
+              <View style={styles.timelineIconBox}>
+                <Ionicons name="cash" size={24} color={COLORS.primary} />
               </View>
-              <Text style={styles.stepTitle}>4. Settle Up</Text>
-              <Text style={styles.stepDescription}>
-                See exactly who owes who, and request splits instantly via deep linked chat.
-              </Text>
+              <Text style={styles.timelineNodeTitle}>Settle Up</Text>
+              <Text style={styles.timelineNodeText}>Know exactly who owes who.</Text>
             </View>
           </View>
         </View>
 
-        {/* 4. INTERACTIVE SPLIT DEMO SECTION */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeadingLabel}>EXPERIENCE THE CALCULATOR</Text>
-          <Text style={styles.sectionTitleText}>Try An Interactive Split</Text>
-
-          <View style={[styles.demoCard, { alignSelf: 'center', width: isDesktop ? 500 : '100%' }]}>
-            <Text style={styles.demoCardTitle}>Dinner Bill Splitter</Text>
-            
-            <View style={styles.demoInputGroup}>
-              <Text style={styles.demoInputLabel}>Dinner Bill Total</Text>
-              <View style={styles.demoPriceInputBox}>
-                <Text style={styles.demoCurrency}>R</Text>
-                <TextInput
-                  style={styles.demoInput}
-                  value={billTotal}
-                  onChangeText={setBillTotal}
-                  keyboardType="numeric"
-                  placeholder="0.00"
-                  placeholderTextColor={COLORS.textMuted}
-                />
-              </View>
-            </View>
-
-            <View style={[styles.demoInputGroup, { marginTop: 16 }]}>
-              <Text style={styles.demoInputLabel}>Number of Guests</Text>
-              <TextInput
-                style={styles.demoTextfield}
-                value={peopleCount}
-                onChangeText={setPeopleCount}
-                keyboardType="numeric"
-                placeholder="e.g. 4"
-                placeholderTextColor={COLORS.textMuted}
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.demoCalcBtn} 
-              onPress={handleDemoCalculate}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.demoCalcBtnText}>Calculate Split</Text>
-            </TouchableOpacity>
-
-            {demoResult !== null && (
-              <View style={styles.demoResultContainer}>
-                <Text style={styles.demoResultLabel}>Each Person Owes</Text>
-                <Text style={styles.demoResultValue}>R {demoResult.toFixed(2)}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* 5. BENEFITS SECTION */}
-        <View style={[styles.section, styles.darkBgSection]}>
-          <Text style={styles.sectionHeadingLabel}>WHY CHOOSE US</Text>
-          <Text style={styles.sectionTitleText}>Features Designed For Real Life</Text>
-
-          <View style={styles.benefitsGrid}>
-            <View style={[styles.benefitCard, isDesktop ? { width: '48%' } : { width: '100%' }]}>
-              <Ionicons name="shield-checkmark" size={32} color={COLORS.primary} style={{ marginBottom: 16 }} />
-              <Text style={styles.benefitTitle}>Stop Chasing People</Text>
-              <Text style={styles.benefitDesc}>
-                Know exactly who owes what at a single glance. No more awkward text messages or phone calls.
-              </Text>
-            </View>
-
-            <View style={[styles.benefitCard, isDesktop ? { width: '48%' } : { width: '100%' }]}>
-              <Ionicons name="bar-chart" size={32} color={COLORS.primary} style={{ marginBottom: 16 }} />
-              <Text style={styles.benefitTitle}>No More Spreadsheets</Text>
-              <Text style={styles.benefitDesc}>
-                Everything is calculated automatically inside our app. Focus on having fun, not compiling cells.
-              </Text>
-            </View>
-
-            <View style={[styles.benefitCard, isDesktop ? { width: '48%' } : { width: '100%' }]}>
-              <Ionicons name="git-merge" size={32} color={COLORS.primary} style={{ marginBottom: 16 }} />
-              <Text style={styles.benefitTitle}>Fair Splits</Text>
-              <Text style={styles.benefitDesc}>
-                Split dinners, trip fuels, or rents equally or customize contributions based on stops and consumption.
-              </Text>
-            </View>
-
-            <View style={[styles.benefitCard, isDesktop ? { width: '48%' } : { width: '100%' }]}>
-              <Ionicons name="grid" size={32} color={COLORS.primary} style={{ marginBottom: 16 }} />
-              <Text style={styles.benefitTitle}>Perfect For Groups</Text>
-              <Text style={styles.benefitDesc}>
-                Engineered for holidays, flatmates, dinner outings, concerts, events, and family splits.
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 6. USE CASES SECTION */}
+        {/* 6. USE CASES SECTION (2x2 GRID) */}
         <View 
           onLayout={(e) => { setUseCasesY(e.nativeEvent.layout.y); }}
           style={styles.section}
@@ -347,61 +406,79 @@ export default function LandingScreen({ onCreateGroup }) {
           <Text style={styles.sectionHeadingLabel}>USE CASES</Text>
           <Text style={styles.sectionTitleText}>Built For Every Occasion</Text>
 
-          <View style={[styles.useCasesGrid, isDesktop ? styles.rowLayout : styles.columnLayout]}>
-            <View style={styles.useCaseCard}>
-              <Text style={styles.useCaseEmoji}>✈</Text>
-              <Text style={styles.useCaseTitle}>Travel</Text>
-              <Text style={styles.useCaseDesc}>Track holiday expenses, Airbnb shares, and fuel split ledgers on road trips.</Text>
+          <View style={styles.useCases2x2}>
+            <View style={[styles.useCaseCardPremium, isDesktop ? { width: '48%' } : { width: '100%' }]}>
+              <View style={styles.useCaseHeaderRow}>
+                <Text style={styles.useCaseTitleTextPremium}>Travel</Text>
+                <Text style={styles.useCaseEmojiPremium}>✈</Text>
+              </View>
+              <Text style={styles.useCaseDescPremium}>Track holiday expenses without spreadsheets.</Text>
             </View>
 
-            <View style={styles.useCaseCard}>
-              <Text style={styles.useCaseEmoji}>🏠</Text>
-              <Text style={styles.useCaseTitle}>Roommates</Text>
-              <Text style={styles.useCaseDesc}>Split monthly rents, utility bills, grocer bills, and house repairs seamlessly.</Text>
+            <View style={[styles.useCaseCardPremium, isDesktop ? { width: '48%' } : { width: '100%' }]}>
+              <View style={styles.useCaseHeaderRow}>
+                <Text style={styles.useCaseTitleTextPremium}>Roommates</Text>
+                <Text style={styles.useCaseEmojiPremium}>🏠</Text>
+              </View>
+              <Text style={styles.useCaseDescPremium}>Split rent, groceries and utilities.</Text>
             </View>
 
-            <View style={styles.useCaseCard}>
-              <Text style={styles.useCaseEmoji}>🍔</Text>
-              <Text style={styles.useCaseTitle}>Dining</Text>
-              <Text style={styles.useCaseDesc}>Split restaurant checks, drinks tabs, tax rates, and tips cleanly among friends.</Text>
+            <View style={[styles.useCaseCardPremium, isDesktop ? { width: '48%' } : { width: '100%' }]}>
+              <View style={styles.useCaseHeaderRow}>
+                <Text style={styles.useCaseTitleTextPremium}>Dining</Text>
+                <Text style={styles.useCaseEmojiPremium}>🍔</Text>
+              </View>
+              <Text style={styles.useCaseDescPremium}>One friend pays. Everyone settles later.</Text>
             </View>
 
-            <View style={styles.useCaseCard}>
-              <Text style={styles.useCaseEmoji}>🎉</Text>
-              <Text style={styles.useCaseTitle}>Events</Text>
-              <Text style={styles.useCaseDesc}>Manage tickets, drinks lists, birthday planning tabs, and shared concert costs.</Text>
+            <View style={[styles.useCaseCardPremium, isDesktop ? { width: '48%' } : { width: '100%' }]}>
+              <View style={styles.useCaseHeaderRow}>
+                <Text style={styles.useCaseTitleTextPremium}>Events</Text>
+                <Text style={styles.useCaseEmojiPremium}>🎉</Text>
+              </View>
+              <Text style={styles.useCaseDescPremium}>Manage group spending for parties and outings.</Text>
             </View>
           </View>
         </View>
 
-        {/* 7. SOCIAL PROOF SECTION */}
+        {/* 7. TRUST SECTION (PRODUCT PRINCIPLES) */}
         <View style={[styles.section, styles.darkBgSection]}>
-          <Text style={styles.sectionHeadingLabel}>TRUST & DESIGN</Text>
-          <Text style={styles.sectionTitleText}>Loved By Social Groups</Text>
-          <Text style={styles.socialProofLead}>Built for students, roommates and friend groups.</Text>
+          <Text style={styles.sectionHeadingLabel}>PRINCIPLES</Text>
+          <Text style={styles.sectionTitleText}>Built For Transparency</Text>
 
-          <View style={[styles.proofCardsGrid, isDesktop ? styles.rowLayout : styles.columnLayout]}>
-            <View style={styles.proofCard}>
-              <Text style={styles.proofCardTitle}>Fast</Text>
-              <Text style={styles.proofCardDesc}>Add expenses and split the check in less than 5 seconds.</Text>
+          <View style={[styles.trustGridRow, isDesktop ? styles.rowLayout : styles.columnLayout]}>
+            <View style={styles.trustCard}>
+              <Ionicons name="flash-outline" size={24} color={COLORS.primary} style={{ marginBottom: 12 }} />
+              <Text style={styles.trustCardTitle}>No complicated setup</Text>
+              <Text style={styles.trustCardDesc}>No registration, email validation or logins needed. Split instantly.</Text>
             </View>
-            <View style={styles.proofCard}>
-              <Text style={styles.proofCardTitle}>Simple</Text>
-              <Text style={styles.proofCardDesc}>Zero registration or logins required. Run splits instantly.</Text>
+
+            <View style={styles.trustCard}>
+              <Ionicons name="calculator-outline" size={24} color={COLORS.primary} style={{ marginBottom: 12 }} />
+              <Text style={styles.trustCardTitle}>Instant calculations</Text>
+              <Text style={styles.trustCardDesc}>Your ledgers and splits calculate in real-time as you enter items.</Text>
             </View>
-            <View style={styles.proofCard}>
-              <Text style={styles.proofCardTitle}>Transparent</Text>
-              <Text style={styles.proofCardDesc}>Clear math equations shown cleanly to every passenger.</Text>
+
+            <View style={styles.trustCard}>
+              <Ionicons name="chatbox-outline" size={24} color={COLORS.primary} style={{ marginBottom: 12 }} />
+              <Text style={styles.trustCardTitle}>Clear settlements</Text>
+              <Text style={styles.trustCardDesc}>WhatsApp deep links compose requesting messages without friction.</Text>
+            </View>
+
+            <View style={styles.trustCard}>
+              <Ionicons name="people-circle-outline" size={24} color={COLORS.primary} style={{ marginBottom: 12 }} />
+              <Text style={styles.trustCardTitle}>Designed for groups</Text>
+              <Text style={styles.trustCardDesc}>Easily split costs evenly or customise percentages by person.</Text>
             </View>
           </View>
         </View>
 
-        {/* 8. FINAL CTA SECTION */}
+        {/* 8. FINAL CTA SECTION (DARK BACKGROUND, TYPOGRAPHY) */}
         <View style={[styles.section, styles.ctaSection]}>
-          <Text style={styles.ctaTitle}>Ready to stop arguing about money?</Text>
-          <Text style={styles.ctaSubtitle}>Create your first group in less than a minute.</Text>
+          <Text style={styles.ctaTitle}>Ready to stop{"\n"}chasing people for money?</Text>
+          <Text style={styles.ctaSubtitle}>Create your first expense group in under a minute.</Text>
           <TouchableOpacity style={styles.ctaPrimaryBtn} onPress={onCreateGroup} activeOpacity={0.85}>
-            <Text style={styles.ctaPrimaryBtnText}>Start Splitting Expenses</Text>
+            <Text style={styles.ctaPrimaryBtnText}>Start Splitting</Text>
           </TouchableOpacity>
         </View>
 
@@ -409,33 +486,10 @@ export default function LandingScreen({ onCreateGroup }) {
         <View style={styles.footer}>
           <Text style={styles.footerLogo}>SPLITFARE</Text>
           <Text style={styles.footerText}>
-            © {new Date().getFullYear()} SplitFare. Built for simple group finance. All session data resides in your device's memory.
+            © {new Date().getFullYear()} SplitFare. Built for transparent, free calculations. No tracking telemetry, no cloud accounts, absolute privacy.
           </Text>
         </View>
       </ScrollView>
-
-      {/* WATCH DEMO OVERLAY MODAL */}
-      {showDemoVideo && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>SplitFare Demo Walkthrough</Text>
-              <TouchableOpacity onPress={() => setShowDemoVideo(false)}>
-                <Ionicons name="close" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.modalBody}>
-              <Ionicons name="play" size={60} color={COLORS.primary} style={{ alignSelf: 'center', marginVertical: 40 }} />
-              <Text style={styles.modalText}>
-                SplitFare lets you split rent, trip costs, and dinner tabs in real-time. Just enter your group names, input your items, and click calculate. Select who paid, configure PayShap or Bank EFT details, and tap "Request" to generate a pre-filled WhatsApp check!
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.modalBtn} onPress={() => setShowDemoVideo(false)}>
-              <Text style={styles.modalBtnText}>Got it, let's start!</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -496,7 +550,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   section: {
-    paddingVertical: 120, // Double spacing as requested!
+    paddingVertical: 140, // Expanded breathing room as requested!
     paddingHorizontal: 24,
     width: '100%',
     alignItems: 'center',
@@ -518,31 +572,34 @@ const styles = StyleSheet.create({
   heroSection: {
     paddingTop: 80,
     paddingBottom: 120,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroGradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: '100%',
+    height: '100%',
+    // Native fallback structure for radial gradient
+    backgroundColor: 'transparent',
+    ...Platform.select({
+      web: {
+        backgroundImage: 'radial-gradient(circle at top right, rgba(124,58,237,0.12), transparent 60%)',
+      }
+    })
   },
   heroLeft: {
-    flex: 1.2,
+    flex: 1,
     alignItems: 'flex-start',
-  },
-  heroBadge: {
-    backgroundColor: 'rgba(124, 58, 237, 0.15)',
-    borderColor: COLORS.primary,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  heroBadgeText: {
-    color: COLORS.primary,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
+    zIndex: 2,
   },
   heroTitle: {
     color: '#ffffff',
     fontWeight: '800',
-    lineHeight: 48,
+    lineHeight: 56,
     marginBottom: 20,
+    letterSpacing: -1,
   },
   heroSubtitle: {
     color: COLORS.textSecondary,
@@ -554,20 +611,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 40,
   },
   heroPrimaryBtn: {
     backgroundColor: COLORS.primary,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 16,
     borderRadius: 8,
   },
   heroPrimaryBtnText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
   heroSecondaryBtn: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -575,50 +631,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 16,
     borderRadius: 8,
   },
   heroSecondaryBtnText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  starsText: {
-    color: '#fbbf24',
     fontSize: 16,
-    letterSpacing: 2,
-  },
-  ratingSubtext: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   heroRight: {
-    flex: 0.9,
     justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  phoneMockupContainer: {
+    width: '100%',
     alignItems: 'center',
   },
   phoneMockup: {
     width: 300,
     height: 580,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#16152b',
     borderRadius: 36,
     padding: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#2d274c',
     ...SHADOWS.card,
   },
   phoneNotch: {
     width: 100,
     height: 18,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0a0b12',
     alignSelf: 'center',
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
@@ -658,8 +702,16 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   phoneTripTotal: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 6,
+  },
+  phoneTripTotalVal: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#ffffff',
     marginTop: 2,
   },
   phoneList: {
@@ -668,79 +720,71 @@ const styles = StyleSheet.create({
   },
   phoneListItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#141322',
     borderWidth: 1,
     borderColor: '#1f1b33',
     borderRadius: 8,
-    padding: 10,
-  },
-  avatarMini: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  avatarMiniText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   phoneListText: {
-    flex: 1,
     color: '#f8fafc',
     fontSize: 13,
   },
   phoneListAmount: {
     fontSize: 13,
     color: '#f8fafc',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   phoneSettlementCard: {
-    backgroundColor: 'rgba(124, 58, 237, 0.05)',
-    borderColor: 'rgba(124, 58, 237, 0.2)',
+    backgroundColor: 'rgba(16, 185, 129, 0.04)',
+    borderColor: 'rgba(16, 185, 129, 0.15)',
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
+    marginBottom: 16,
   },
   phoneSettlementTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.secondary,
+    color: COLORS.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   phoneSettlementRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
   },
   phoneSettlementText: {
-    flex: 1,
     fontSize: 12,
     color: COLORS.textSecondary,
   },
   phoneSettlementValue: {
     fontSize: 12,
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  phoneSettleBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 6,
-    height: 30,
-    justifyContent: 'center',
+  phoneStatusBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignSelf: 'center',
   },
-  phoneSettleBtnText: {
-    color: '#ffffff',
+  phoneStatusText: {
+    color: COLORS.accent,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   sectionHeadingLabel: {
     fontSize: 11,
@@ -757,242 +801,356 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 60,
   },
-  howItWorksGrid: {
+  // FROSTED GLASS CARDS (Light glass backing pop)
+  demoOuterCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)', // Light glass backing as specified!
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderWidth: 1,
+    borderRadius: 28, // R28 rounded corners
+    padding: 30,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.08, // Subtle soft shadow
+    shadowRadius: 60,
+    elevation: 8,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(20px)',
+      }
+    })
+  },
+  demoCardHeader: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a', // Deep dark slate for contrast on light glass
+    marginBottom: 20,
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  demoGridRow: {
+    flexDirection: 'row',
+    gap: 30,
+  },
+  demoGridColumn: {
+    flexDirection: 'column',
+  },
+  demoInputGroup: {
+    width: '100%',
+  },
+  demoLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569', // Muted slate gray
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  demoSplitSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  demoSplitTab: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  demoSplitTabActive: {
+    backgroundColor: '#7c3aed', // Purple Brand active highlight
+    borderColor: '#7c3aed',
+  },
+  demoSplitTabText: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  demoSplitTabTextActive: {
+    color: '#ffffff',
+  },
+  demoPayerTab: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  demoPayerTabActive: {
+    backgroundColor: '#7c3aed',
+    borderColor: '#7c3aed',
+  },
+  demoPayerTabText: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  demoPayerTabTextActive: {
+    color: '#ffffff',
+  },
+  demoPriceBox: {
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    paddingHorizontal: 12,
+  },
+  demoCurrency: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  demoTextfield: {
+    flex: 1,
+    height: '100%',
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '600',
+    paddingLeft: 4,
+    outlineStyle: 'none',
+  },
+  demoInputSimple: {
+    height: 44,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    paddingHorizontal: 12,
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '600',
+    outlineStyle: 'none',
+  },
+  demoCalcBtn: {
+    backgroundColor: '#7c3aed',
+    height: 46,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#7c3aed',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  demoCalcBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  // Demo Output Right Panel
+  demoOutputPanel: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    padding: 20,
+    justifyContent: 'center',
+    minHeight: 250,
+  },
+  demoPlaceholderBox: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  demoPlaceholderText: {
+    color: '#64748b',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  demoStatusBox: {
+    alignItems: 'center',
+  },
+  demoStatusText: {
+    color: '#7c3aed',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  demoResultsBox: {
+    width: '100%',
+  },
+  demoResultsHeader: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0f172a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingBottom: 6,
+  },
+  demoResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.03)',
+  },
+  demoResultText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  demoResultValue: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  demoResultSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  demoResultSuccessText: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  // TIMELINE HOW IT WORKS
+  timelineContainer: {
     width: '100%',
     maxWidth: 1100,
     gap: 20,
     alignSelf: 'center',
   },
-  howItWorksCard: {
+  timelineNode: {
     flex: 1,
-    backgroundColor: COLORS.surfaceCard,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 24, // Consistent R24 corners
-    padding: 24,
-    alignItems: 'flex-start',
-    ...SHADOWS.card,
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 28,
+    padding: 30,
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(20px)',
+      }
+    })
   },
-  stepIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+  timelineIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     backgroundColor: 'rgba(124, 58, 237, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
-  stepTitle: {
+  timelineNodeTitle: {
     fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  stepDescription: {
-    color: COLORS.textSecondary,
-    lineHeight: 18,
-    fontSize: 13,
-  },
-  demoCard: {
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 30,
-    ...SHADOWS.card,
-  },
-  demoCardTitle: {
-    color: '#ffffff',
-    marginBottom: 20,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  demoInputGroup: {
-    width: '100%',
-  },
-  demoInputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    color: '#0f172a',
     marginBottom: 8,
   },
-  demoPriceInputBox: {
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
+  timelineNodeText: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 18,
   },
-  demoCurrency: {
-    color: COLORS.textSecondary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  demoInput: {
-    flex: 1,
-    height: '100%',
-    color: '#ffffff',
-    fontSize: 15,
-    paddingLeft: 8,
-    outlineStyle: 'none',
-  },
-  demoTextfield: {
-    height: 48,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    color: '#ffffff',
-    fontSize: 15,
-    outlineStyle: 'none',
-  },
-  demoCalcBtn: {
-    backgroundColor: COLORS.primary,
-    height: 48,
-    borderRadius: 8,
+  timelineArrow: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    ...SHADOWS.glow,
+    paddingHorizontal: 4,
   },
-  demoCalcBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  demoResultContainer: {
-    marginTop: 24,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  demoResultLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  demoResultValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  benefitsGrid: {
+  // 2x2 USE CASES GRID
+  useCases2x2: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 24,
     maxWidth: 1100,
     justifyContent: 'center',
   },
-  benefitCard: {
-    backgroundColor: COLORS.surfaceCard,
-    borderColor: COLORS.border,
+  useCaseCardPremium: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 30,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(20px)',
+      }
+    })
   },
-  benefitTitle: {
+  useCaseHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  useCaseTitleTextPremium: {
     fontSize: 18,
-    color: '#ffffff',
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  useCaseEmojiPremium: {
+    fontSize: 24,
+  },
+  useCaseDescPremium: {
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 20,
+  },
+  // TRUST SECTION PRINCIPLES
+  trustGridRow: {
+    width: '100%',
+    maxWidth: 1100,
+    gap: 20,
+    alignSelf: 'center',
+  },
+  trustCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderRadius: 28,
+    padding: 30,
+    alignItems: 'flex-start',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(20px)',
+      }
+    })
+  },
+  trustCardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
     marginBottom: 10,
   },
-  benefitDesc: {
-    color: COLORS.textSecondary,
-    lineHeight: 20,
+  trustCardDesc: {
     fontSize: 13,
-  },
-  useCasesGrid: {
-    width: '100%',
-    maxWidth: 1100,
-    gap: 20,
-    alignSelf: 'center',
-  },
-  useCaseCard: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    textAlign: 'center',
-  },
-  useCaseEmoji: {
-    fontSize: 32,
-    marginBottom: 16,
-  },
-  useCaseTitle: {
-    color: '#ffffff',
-    fontWeight: '700',
-    marginBottom: 8,
-    fontSize: 15,
-  },
-  useCaseDesc: {
-    color: COLORS.textSecondary,
+    color: '#475569',
     lineHeight: 18,
-    textAlign: 'center',
-    fontSize: 13,
   },
-  socialProofLead: {
-    color: COLORS.textSecondary,
-    fontSize: 18,
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  proofCardsGrid: {
-    width: '100%',
-    maxWidth: 1100,
-    gap: 20,
-    alignSelf: 'center',
-  },
-  proofCard: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceCard,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 24,
-    padding: 30,
-    alignItems: 'center',
-  },
-  proofCardTitle: {
-    color: '#ffffff',
-    fontWeight: '800',
-    marginBottom: 12,
-    fontSize: 20,
-  },
-  proofCardDesc: {
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
-    fontSize: 13,
-  },
+  // CTA SECTION (DARK BACKGROUND)
   ctaSection: {
     paddingVertical: 140,
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#0a0b12',
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   ctaTitle: {
-    fontSize: 38,
     color: '#ffffff',
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 16,
+    letterSpacing: -0.5,
+    lineHeight: 44,
   },
   ctaSubtitle: {
     color: COLORS.textSecondary,
@@ -1002,11 +1160,15 @@ const styles = StyleSheet.create({
   },
   ctaPrimaryBtn: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    paddingHorizontal: 36,
+    paddingVertical: 18,
     borderRadius: 8,
     alignSelf: 'center',
-    ...SHADOWS.glow,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 4,
   },
   ctaPrimaryBtnText: {
     color: '#ffffff',
@@ -1033,57 +1195,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
     fontSize: 12,
-  },
-  modalOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10, 11, 18, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 24,
-    width: '100%',
-    maxWidth: 480,
-    ...SHADOWS.card,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingBottom: 12,
-  },
-  modalTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  modalBody: {
-    marginBottom: 24,
-  },
-  modalText: {
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-    fontSize: 14,
-  },
-  modalBtn: {
-    backgroundColor: COLORS.primary,
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
   },
 });
